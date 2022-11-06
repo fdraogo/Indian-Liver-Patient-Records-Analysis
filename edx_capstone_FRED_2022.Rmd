@@ -1,0 +1,472 @@
+---
+title: "Indian_Liver_Disease_final_edx_001"
+author: "Frederic Ouedraogo"
+date: "2022-10-10"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INTRODUCTION
+
+   According to the study description available here: https://www.kaggle.com/datasets/uciml/indian-liver-patient-records?select=indian_liver_patient.csv, there has been a continuous rise in the prevalence for liver disease in a local community in India. A list of potential suspects has been established including excessive consumption of alcohol, inhale of harmful gases, intake of contaminated food, pickles and drugs. For decision makers to elaborate effective policies, they need to have data-driven evidence that the overmentioned suspects are in fact contributing factors. A dataset consisting of 583 hospital patients was gathered. The dataset contains some demographic information (gender and age) along with some biological test results (level of bilirubin, alkaline phosphotase, alamine aminotransferase, aspartate aminotransferase, proteins, albumin, and the ratio of albumin to globulin) and a diagnosis of liver disease. For the later, the outcome is a binary variable taking the value of 1 if the patient has a liver disease and 0 otherwise.
+
+   As a data scientist, I was given the opportunity to analyze the data and help the authorities handle the issue. My role is to come up with a model that is not only capable of identifying the driving factors, but more importantly, capable of predicting with high accuracy individuals within the community with higher probabilities of being diagnosed positive to the disease. That will allow decision makers to identify their high-risk individuals, to develop and deploy appropriate strategies and policies. Because of the nature of the response variable (binary variable), I relied on logit model which is more powerful in handling such type of response variable.
+
+   All analyses were performed in R studio. Machine learning was used for the statistical analyses. Dataset was divided into training set (75% or the data) and testing set (25%). Several models were estimated, and the AIC was used as a criterion for best model selection. Prediction was performed using the best model and the confusion matrix was used to test the performance of the prediction.
+   
+   The results of the logistic regression suggest that only gender (p-value = 0.0171) and level of alamine_Aminotransferase (p-value = 0.0425) have significant effects on one likelihood of developing liver disease. We did not find enough evidence that albumin, age, albumin_and_globulin_Ratio, total_proteins, direct_bilirubin, alkaline_phosphotase, and total_bilirubin affect odds of being tested positive. We performed a prediction using the testing data and the accuracy result from the confusion Matrix suggests that our model is correct in 64% of the test cases. In other words, a true positive and true negative occur in 64% of cases. 
+   
+### METHODS
+
+   The dataset was downloaded from kaggle (https://www.kaggle.com/datasets/uciml/indian-liver-patient-records?select=indian_liver_patient.csv). A description of the variables in the dataset is presented in the Table 1. Most variables are positive numeric (Num) meaning that they take values of 0 or above. Gender is a binary (Female and Male) gender variable. The result from the liver diagnossis is a numeric variable taking the value of 1 if the result is positive and 0 otherwise.  
+   
+
+# Table 1. Description of the variables in the dataset.
++-------------------------------------------+----------+---------------------------+
+Variable description                        | Nature   | Variable name
++-------------------------------------------+----------+---------------------------+
+  Age of the patient                        | Num      | Age
+  Gender of the patient                     | Char     | Gender
+  Total Bilirubin                           | Num      | Total_Bilirubin
+  Direct Bilirubin                          | Num      | Direct_Bilirubin
+  Alkaline Phosphotase                      | Num      | Alkaline_Phosphotase
+  Alamine Aminotransferase                  | Num      | Alamine_Aminotransferase
+  Aspartate Aminotransferase                | Num      | Aspartate_Aminotransferase
+  Total Protiens                            | Num      | Total_Protiens
+  Albumin                                   | Num      | Albumin
+  Ratio Albumin and Globulin Ratio          | Num      | Albumin_and_Globulin_Ratio
+  Result from liver disease diagnosis       | Num      | Liver_disease
++-------------------------------------------+----------+----------+-----------------+
+
+## Exploratory Data Analysis
+
+   To have a better understanding of the data, we performed a series of exploratory data analyses. A quick overview of the variables shows some concerning values that could potentially influence the results of the analyis. Total_Bilirubin, Direct_Bilirubin, Alkaline_phosphotase, Alamine_aminotransferase, Aspartate_aminotransferase carry some potential outlying values. Both visual and statistical tests were performed to identify and remove outliers. The visual tests include histogram and scatterplot. The Grubbs test was used as a statistical test for detecting outliers. 
+   In addition, Albumin_and_globulin_Ratio has 4 missing values that needs to be taken care of.
+   Age of the patients ranges from 4 to 90 years with a typical patient being about 44 years of age (Table 2). About 3% of the sample are 15 years or below, 48.5% are between 16 and 45 years, 38.3% between 46 and 65 years, 10.1% between 66 and 85 years, and less than 1% are 86 years or older (Table 3). Women (43 years) are relatively younger than men (45 years).
+   
+Of the study sample, 456 (67%) are women and men represent 43% of the sample. The average level of total bilirubin, alkaline phosphotase, alamine aminotransferase, aspartate aminotransferase, total proteins, and albumin is 3.3, 290.6, 80.7, 109.9, 6.5, 3.1, and 0.9, respectively. The standard deviations, the minimum and the maximum values, as well as the inter quartile ranges (IQR) are also presented in the table below. Clearly, the large gap between mean and median values for some variables imply that the data are somehow skewed due to potential outliers. 
+
+
+# Table 2. Summary statistics of the patients   
++------------------------------------+---------+--------+-------+---------+-------+
+Variable description                 | Mean    | Median | Min   | Max     | IQR
++------------------------------------+---------+--------+-------+---------+-------+
+  Age                                | 44.7    | 45.0   |   4.0 |   90.0  |  86.0
+  Total_Bilirubin                    |  3.3    |  1.0   |   0.4 |   75.0  |  71.0
+  Direct Bilirubin                   |  1.5    |  0.3   |   0.1 |   19.7  |  19.6
+  Alkaline Phosphotase               |290.6    |208.0   |  63.0 | 2110.0  |2047.0
+  Alamine Aminotransferase           | 80.7    | 35.0   |  10.0 | 2000.0  |1990.0
+  Aspartate Aminotransferase         |109.9    | 42.0   |  10.0 | 4929.0  |4919.0
+  Total Protiens                     |  6.5    |  6.6   |   2.7 |    9.6  |   6.9
+  Albumin                            |  3.1    |  3.1   |   0.9 |    5.5  |   4.6
+  Ratio Albumin and Globulin Ratio   |  0.9    |  0.9   |   0.3 |    2.8  |   2.5
++------------------------------------+---------+--------+-------+---------+-------+
+
+# Accessing the data from my github
+```{r}
+data_stat <- read.csv("https://raw.githubusercontent.com/fdraogo/Indian-Liver-Patient-Records-Analysis/main/Indian-Liver-Patient-Records-Analysis.csv")
+```
+# Installing packages for exploratory data analytics
+   The first sets of analysis performed are to explore the data. This will alllow a better understanding of the data, identify influencial values that could impact the results of the regression and pull insights that could lead to an efficient identification of the model that will be used to fit the data. Insights are presented in the form of table or chart that summarizes the key findings. The packages installed are tidyverse, ggplot2, dplyr, and stringr.
+   
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+```
+# Overview of the dataset
+   This will provide us with key indicators such as means, medians, first and third quartiles, minimum and maximum values of all numeric variables in the dataset. Data of 583 patients (Women = 142, Men = 441) were in the dataset.
+
+```{r}
+summary(data_stat) 
+```
+# Gender distribution of patients
+```{r}
+table (data_stat$Gender)
+```
+# Distribution of patients by gender and liver disease status (positive = 1, negative = 0)
+```{r}
+table (data_stat$Gender, data_stat$liver_disease)
+```
+
+# Summary of the patients by gender
+```{r}
+ggplot(data_stat, aes(x = Gender)) +
+        geom_bar() +
+        theme(axis.text.x = element_text(hjust = 1))
+```
+
+# How many people were tested positive? by gender and age group
+```{r}
+data_stat <- data_stat %>% 
+  mutate(
+    Age_group = dplyr::case_when(
+      Age <= 15            ~ "0-15",
+      Age > 15 & Age <= 45 ~ "16-45",
+      Age > 45 & Age <= 65 ~ "46-65",
+      Age > 65 & Age <= 85 ~ "66-85",
+      Age > 85             ~ "> 85"
+    ),
+    
+    Age_group = factor(
+      Age_group,
+      level = c("0-15", "16-45","46-65", "66-85","> 85")
+    )
+  )
+```
+
+# Age distribution of each sub-population in the dataset
+  The distribution presented in the figure below suggests that both women and men populations have the same characteristics with the mode being at age group 16 to 45 years and the top three groups being "16-45", "46-65", and "66-85", respectively.
+```{r}
+ggplot(data_stat, aes(x = Age_group)) +
+        geom_bar(aes(y = (..count..)/sum(..count..))) +
+        xlab("Age groups of patients") +
+        scale_y_continuous(labels = scales::percent, name = "Proportion") +
+        facet_grid(~ Gender) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Table 3. Summarize the sample by age group
+
++-----------+---------+---------+
+Age range   | Count   | Percent
++-----------+---------+---------+
+   0 - 15   |   17    |   2.9%   
+  16 - 45   |  283    |  48.5%  
+  46 - 65   |  223    |  38.3%   
+  66 - 85   |   59    |  10.1%   
+       85+  |    1    |   0.2%   
++-----------+---------+---------+		
+
+# Mean age of the patients
+The mean age of the patients is 44 years with women (43) being relatively younger than men (45).
+
+```{r}
+mean(data_stat$Age) 
+
+aggregate(x = data_stat$Age,              
+          by = list(data_stat$Gender),            
+          FUN = mean) 
+```
+
+# Data visualization and identification of possible outlying values 
+
+```{r}
+hist(data_stat$Total_Bilirubin,
+  xlab = "Levels of total bilirubin",
+  main = "Distribution of Total Bilirubin",
+  border = "black",
+  breaks = sqrt(nrow(data_stat))
+) 
+
+hist(data_stat$Direct_Bilirubin,
+  xlab = "Levels of direct bilirubin",
+  main = "Distribution of Direct Bilirubin",
+  border = "black",
+  breaks = sqrt(nrow(data_stat))
+) 
+
+hist(data_stat$Alkaline_Phosphotase,
+  xlab = "Level of alkaline phosphotase",
+  main = "Distribution of alkaline phosphotase",
+  border = "black",
+  breaks = sqrt(nrow(data_stat))
+) 
+
+hist(data_stat$Alamine_Aminotransferase,
+  xlab = "Levels of alamine aminotransferase",
+  main = "Distribution of alamine aminotransferase",
+  border = "black",
+  breaks = sqrt(nrow(data_stat))
+) 
+
+hist(data_stat$Aspartate_Aminotransferase,
+  xlab = "Levels of aspartate aminotransferase",
+  main = "Distribution of aspartate aminotransferase",
+  border = "black",
+  breaks = sqrt(nrow(data_stat))
+) 
+
+```
+
+# More formal identification of possible outlying values
+
+```{r}
+library(outliers)
+```
+
+# identifying outliers using the Grubbs test statistics
+   The choice of Grubbs test is because of the large sample size that we are dealing with and also because the minimum values in our dataset do not seem to be of any concern. However, the maximum values are most often far away from the rest of the data points. In all of our suspect factors, the maximum values are in fact outliers as confirmed by the Grubbs' test.
+
+```{r}
+test_Total_bilirubin  <- grubbs.test(data_stat$Total_Bilirubin)
+test_Direct_bilirubin  <- grubbs.test(data_stat$Direct_Bilirubin)
+test_Alkaline_phosphotase  <- grubbs.test(data_stat$Alkaline_Phosphotase)
+test_Alamine_aminotransferase  <- grubbs.test(data_stat$Alamine_Aminotransferase)
+test_Aspartate_aminotransferase <- grubbs.test(data_stat$Aspartate_Aminotransferase)
+
+
+test_Total_bilirubin  
+test_Direct_bilirubin  
+test_Alkaline_phosphotase  
+test_Alamine_aminotransferase  
+test_Aspartate_aminotransferase 
+
+```
+
+# Cleaning the data and removing outliers and observations with missing values
+   A quantile approach was used to identify and remove influential values from the dataset. 
+
+```{r}
+Q1 <- quantile(data_stat$Total_Bilirubin, probs=c(.25, .75), na.rm = FALSE)
+Q2 <- quantile(data_stat$Direct_Bilirubin, probs=c(.25, .75), na.rm = FALSE)
+Q3 <- quantile(data_stat$Alkaline_Phosphotase, probs=c(.25, .75), na.rm = FALSE)
+Q4 <- quantile(data_stat$Alamine_Aminotransferase, probs=c(.25, .75), na.rm = FALSE)
+Q5 <- quantile(data_stat$Aspartate_Aminotransferase, probs=c(.25, .75), na.rm = FALSE)
+
+
+iqr1 <- IQR(data_stat$Total_Bilirubin)
+iqr2 <- IQR(data_stat$Direct_Bilirubin)
+iqr3 <- IQR(data_stat$Alkaline_Phosphotase)
+iqr4 <- IQR(data_stat$Alamine_Aminotransferase)
+iqr5 <- IQR(data_stat$Aspartate_Aminotransferase)
+
+
+eliminated1<- subset(data_stat, data_stat$Total_Bilirubin > (Q1[1] - 1.5*iqr1) & data_stat$Total_Bilirubin < (Q1[2]+1.5*iqr1))
+eliminated2<- subset(data_stat, data_stat$Direct_Bilirubin > (Q2[1] - 1.5*iqr2) & data_stat$Direct_Bilirubin < (Q2[2]+1.5*iqr2))
+eliminated3<- subset(data_stat, data_stat$Alkaline_Phosphotase > (Q3[1] - 1.5*iqr3) & data_stat$Alkaline_Phosphotase < (Q3[2]+1.5*iqr3))
+eliminated4<- subset(data_stat, data_stat$Alamine_Aminotransferase > (Q4[1] - 1.5*iqr4) & data_stat$Alamine_Aminotransferase < (Q4[2]+1.5*iqr4))
+eliminated5<- subset(data_stat, data_stat$Aspartate_Aminotransferase > (Q5[1] - 1.5*iqr5) & data_stat$Aspartate_Aminotransferase < (Q5[2]+1.5*iqr5))
+
+
+dat<- data_stat %>% filter(Total_Bilirubin >= 0.4 & Total_Bilirubin <= 5.3,
+                Direct_Bilirubin >= 0.1 & Direct_Bilirubin <= 4.2,
+                Alkaline_Phosphotase >= 63.0 & Alkaline_Phosphotase <= 187.0,
+                Alamine_Aminotransferase >= 10 & Alamine_Aminotransferase <= 58,
+                Aspartate_Aminotransferase >= 10 & Aspartate_Aminotransferase <= 95)
+
+datfred <-na.omit(dat)
+```
+
+# Overview of the new dataset (after removing outliers and NAs)
+
+```{r}
+summary(datfred)
+```
+
+# Installing package for categorical data analysis
+
+```{r}
+library(bitops)
+```
+
+# proportion of positive by gender
+50 females (35.2%) were diagnosed with liver disease and 117 males (26.5%) were also found positive. From these statistics, females tend to have higher prevalence of liver disease than their male counterparts. However, given that we have more female in the study sample than male, a statistical test is required to test the hypothesis that women is more likely to be positive to liver disease than men. For this, we used the Chi-square test and the Fisher test. The Fisher test did not find enough evidence (p-value = 0.0546) that women have higher odds of being diagnosed with liver disease compared to men.
+After cleaning the data for potential outliers, a total of 166 patients (women = 53 and men = 113) were included in the analysis. The prevalence for women was 39.6% and that for men was 47.8%. 
+
+
+```{r}
+table(data_stat$liver_disease, data_stat$Gender)
+table(datfred$liver_disease, datfred$Gender)
+```
+
+
+```{r}
+data_stat  %>%
+  group_by(Gender, liver_disease)%>% 
+  summarize(n = n()) %>%
+  mutate(Percent = n/sum(n)) %>%
+  ggplot() +
+  geom_col(aes(x = Gender, y = Percent, fill = liver_disease))
+
+datfred  %>%
+  group_by(Gender, liver_disease)%>% 
+  summarize(n = n()) %>%
+  mutate(Percent = n/sum(n)) %>%
+  ggplot() +
+  geom_col(aes(x = Gender, y = Percent, fill = liver_disease))
+```
+
+# Using a fisher test to see if women have high prevalence of liver disease
+
+```{r}
+fisher.test(table(datfred$liver_disease, datfred$Gender), alternative = c("two.sided"))
+```
+
+# Using a fisher test to see if women have high prevalence of liver disease
+
+```{r}
+fisher.test(table(datfred$liver_disease, datfred$Gender), alternative = c("greater"))
+```
+
+# Using a Chi-square test to see if women have high prevalence of liver disease
+
+```{r}
+chisq.test(table(datfred$liver_disease, datfred$Gender))
+```
+
+# A scatterplot to see if outliers persisted and if gender and age could explain their presence.
+
+```{r}
+plot(datfred$Age, datfred$Total_Bilirubin,
+     pch = 19,
+     col = factor(datfred$Gender))
+
+legend("topleft",
+       legend = levels(factor(datfred$Gender)),
+       pch = 19,
+       col = factor(levels(factor(datfred$Gender))))
+
+
+plot(datfred$Age, datfred$Direct_Bilirubin ,
+     pch = 19,
+     col = factor(datfred$Gender))
+
+legend("topleft",
+       legend = levels(factor(datfred$Gender)),
+       pch = 19,
+       col = factor(levels(factor(datfred$Gender))))
+
+plot(datfred$Age, datfred$Alkaline_Phosphotase,
+     pch = 19,
+     col = factor(datfred$Gender))
+
+legend("topleft",
+       legend = levels(factor(datfred$Gender)),
+       pch = 19,
+       col = factor(levels(factor(datfred$Gender))))
+
+plot(datfred$Age, datfred$Alamine_Aminotransferase,
+     pch = 19,
+     col = factor(datfred$Gender))
+
+legend("topleft",
+       legend = levels(factor(datfred$Gender)),
+       pch = 19,
+       col = factor(levels(factor(datfred$Gender))))
+
+
+plot(datfred$Age, datfred$Aspartate_Aminotransferase,
+     pch = 19,
+     col = factor(datfred$Gender))
+
+legend("topleft",
+       legend = levels(factor(datfred$Gender)),
+       pch = 19,
+       col = factor(levels(factor(datfred$Gender))))
+```
+
+
+# Exploratory data analysis on new dataset 
+
+```{r}
+library(ggstatsplot)
+library(caTools)
+library(cowplot)
+library(PerformanceAnalytics)
+```
+
+# Correlation analytics for a better understanding of the relationship between variables
+  Only few significant correlations were found among the factors suspected to influence one odds of being diagnosed with liver disease. There was a strong positive correlation between total and direct bilirubin and of course this was expected. Then there was a significant positive correlation between direct bilirubin and aminotransferase, and between total bilirubin and aminotransferase. In addition, alamine aminotransferase and aspartate aminotransferase had significant positive correlation, total protein and albumin, total proteins and ratio of albumin to globulin were also correlated with one another. 
+
+```{r warning=FALSE}
+my_data <- datfred[, c(1,3,4,5,6,7,8,9,10)]
+chart.Correlation(my_data, histogram=TRUE, pch=19)
+```
+
+# Final preparation of data for machine learning - converting the binary response variable to factor variable
+
+```{r}
+datfred$liver_disease <- factor(datfred$liver_disease)
+datfred$Gender <- factor(datfred$Gender)
+```
+
+# Installing packages for ML
+
+```{r}
+library(caret)
+```
+
+#use 70% of dataset as training set and 30% as test set
+   75% of the data were used as training set and the remainder(25%) are kept as testing set.
+
+```{r}
+set.seed(1, sample.kind="Rounding") 
+test_index <- createDataPartition(y = datfred$liver_disease, times = 1, p = 0.25, list = FALSE)
+train <- datfred[-test_index,]
+test <- datfred[test_index,]
+```
+# Training the data - initial model
+   An initial model was used to train the data. This initial model encompasses all the variables in the dataset.
+The AIC was used to select the model that fits best the data. The selection criteria is that the model with the smallest AIC is the best. The fith model was chosen since it yielded the lowest AIC (170.65). Only gender (p-value = 0.0171) and level of alamine aminotransferase (p-value = 0.0425) have significant impact on liver disease. Increasing level of alamine aminotransferase is associated with higher probabilities of being tested positive to liver disease.
+
+```{r}
+initial_model <- glm(liver_disease ~ Gender + Age + Direct_Bilirubin + Alkaline_Phosphotase + 
+                       Alamine_Aminotransferase + Total_Bilirubin + Total_Protiens + Albumin + Albumin_and_Globulin_Ratio, 
+                       data = train, 
+                       family = binomial(link="logit"))
+
+second_model <- glm(liver_disease ~ Gender + Age + Direct_Bilirubin + Alkaline_Phosphotase + 
+                       Alamine_Aminotransferase + Total_Protiens + Albumin + Albumin_and_Globulin_Ratio, 
+                       data = train, 
+                       family = binomial(link="logit"))
+
+third_model <- glm(liver_disease ~ Gender + Age + Direct_Bilirubin + Alkaline_Phosphotase + 
+                       Alamine_Aminotransferase + Total_Protiens, 
+                       data = train, 
+                       family = binomial(link="logit"))
+
+fourth_model <- glm(liver_disease ~ Gender + Age + Alkaline_Phosphotase + Alamine_Aminotransferase + Total_Protiens, 
+                       data = train, 
+                       family = binomial(link="logit"))
+
+fifth_model <- glm(liver_disease ~ Gender + Age + Alkaline_Phosphotase + Alamine_Aminotransferase, 
+                       data = train, 
+                       family = binomial(link="logit"))
+
+summary(initial_model)
+summary(second_model)
+summary(third_model)
+summary(fourth_model)
+summary(fifth_model)
+```
+
+# Let's test our results on unused data (testing set)
+   We calculated the prediction probabilities and predicted classes on top of those probabilities. We picked 0.5 to be our threshold so that patients will be declared negative if their probabilities fall under 0.5 and positive otherwise. 
+
+```{r}
+probabs <- predict(fifth_model, test, type = 'response')
+preds <- ifelse(probabs > 0.5, 1,0)
+```
+
+
+# Getting the confusion matrix
+So, overall, our model is correct in 64% of the test cases.
+
+```{r}
+confusionMatrix(factor(preds), factor(test$liver_disease))
+```
+
+### RESULTS
+
+   The results of the logistic regression suggest that only gender (p-value = 0.0171) and level of alamine aminotransferase (p-value = 0.0425) have significant effects on one likelihood of developing liver disease. We did not find enough evidence that albumin, age, ratio of albumin to globulin, total proteins, direct bilirubin, alkaline phosphotase, and total bilirubin affect odds of being tested positive. We performed a prediction using the testing data and the accuracy result from the confusion Matrix suggests that our model is correct in 64% of the test cases. In other words, a true positive and true negative occur in 64% of cases. 
+
+
+### CONCLUSION
+
+   Data were collected on 583 patients to determine the drivers of liver disease. Data collected include demographic information (gender and age) along with some biological test results (level of bilirubin, alkaline phosphotase, alamine aminotransferase, aspartate aminotransferase, proteins, albumin, and the ratio of albumin to globulin). Each patient was then diagnosed for liver disease and the outcome for this diagnosis is either positive (has liver disease) or negative (does not have liver disease). To help decision makers develop and deploy policies to fight the increasing prevalence of liver disease, I used a ML algorithm and a logistic regression to test whether each of the factors suspected is in fact a significant driver. After selecting the best model that fits the data based on the AIC, I used the best model to predict and the confusion matrix was used to test the performance of the prediction. The results of the logistic regression suggest that (1) efforts should first target women who were found to have higher prevalence of liver disease. In addition, local authorities should work on reducing level of alamine aminotransferase that has significant effect on likelihood of developing liver disease. One of the biggest limitations of this study is that most of the real contributing factors were not included in the data.  
+
+### REFERENCES
+1. Lichman, M. (2013). UCI Machine Learning Repository [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California, School of Information and Computer Science.
+
+
+
+
+
